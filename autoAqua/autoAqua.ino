@@ -1,6 +1,13 @@
+#include <Wire.h>
 #include <Servo.h>
+#include "DS3231.h"
+
+#define DS3231_ADDRESSE 0x68
+
+DS3231 Clock;
 
 Servo myservo;  // create servo object to control a servo
+RTClib RTC;
 
 int moistureLevel = 0; //value for storing moisture value 
 unsigned long previousMillis = 0;
@@ -13,7 +20,7 @@ const int soilPower = 3;//Variable for Soil moisture Power
 const int servoPin = 4;
 const int led = A1;
 const unsigned long timeThreshold = 3600000; // 43200000 // 12 hours
-const unsigned long delayTime = 900000;
+const unsigned long delayTime = 1000;
 const unsigned long maxPumpTime = 600000; // 10 min
 
 void setup() 
@@ -26,43 +33,24 @@ void setup()
   myservo.attach(servoPin);  // attaches the servo on pin 5 to the servo object
   myservo.write(1); // ensure pump is closed
   pinMode(led, OUTPUT);  
+
+  //setClock();
+
+  initClock();
 }
 
 void loop() 
 {  
-  unsigned long currentMillis = millis();
-
-  Serial.print("time: ");
-  Serial.print(currentMillis / 1000);
-  Serial.println("s");
-
-  bool thresholdBroken = (unsigned long)(currentMillis - previousMillis) >= timeThreshold;
-
-  // measure soil moisture in a certain interval or when servo is open
-  if (thresholdBroken || open) 
-  {
-      measureCount = 0;
-      for(int i = 0; i < 7; i++) 
-      {
-        delay(1000);
-          
-        int soilMoisture = readSoil();
+  int soilMoisture = readSoil();
   
-        Serial.print("soil moisture ");
-        Serial.println(soilMoisture);
+  Serial.print("soil moisture ");
+  Serial.println(soilMoisture);
       
-        setServo(soilMoisture);
-      }      
+  setServo(soilMoisture);
 
-      // don't reset when run due to pump open - otherwise pump open time will delay interval
-      if(thresholdBroken)
-        previousMillis = currentMillis;
-  }  
-
-  if(thresholdBroken || open)
-    delay(delayTime - 7000);
-  else
-    delay(delayTime);
+  showTimeAndTemp();
+  
+  delay(delayTime);
 }
 
 //This is a function used to get the soil moisture content
@@ -101,4 +89,18 @@ void setServo(int soilMoisture)
     
     Serial.println("servo close");
   }
+}
+
+void setClock() 
+{
+    Clock.setClockMode(false);  // set to 24h
+    //setClockMode(true); // set to 12h
+
+    Clock.setYear(20);
+    Clock.setMonth(12);
+    Clock.setDate(03);
+    Clock.setDoW(02);
+    Clock.setHour(20);
+    Clock.setMinute(33);
+    Clock.setSecond(40);
 }
