@@ -1,12 +1,10 @@
 #include <Wire.h>
-#include <Servo.h>
 #include "DS3231.h"
 
 #define DS3231_ADDRESSE 0x68
 
 DS3231 Clock;
 
-Servo myservo;  // create servo object to control a servo
 RTClib RTC;
 
 int moistureLevel = 0; //value for storing moisture value 
@@ -17,9 +15,9 @@ unsigned long pumpTime = 0;
 
 const int soilPin = A0;//Declare a variable for the soil moisture sensor 
 const int soilPower = 3;//Variable for Soil moisture Power
-const int servoPin = 4;
+const int relaisPin = 4;
 const int led = A1;
-const unsigned long timeThreshold = 3600000; // 43200000 // 12 hours
+const unsigned long timeThreshold = 3000; // 43200000 // 12 hours
 const unsigned long delayTime = 1000;
 const unsigned long maxPumpTime = 600000; // 10 min
 
@@ -30,11 +28,11 @@ void setup()
   pinMode(soilPower, OUTPUT);//Set D7 as an OUTPUT
   digitalWrite(soilPower, LOW);//Set to LOW so no power is flowing through the sensor
 
-  myservo.attach(servoPin);  // attaches the servo on pin 5 to the servo object
-  myservo.write(1); // ensure pump is closed
-  pinMode(led, OUTPUT);  
-
+  //pinMode(led, OUTPUT);  
+  pinMode(relaisPin, OUTPUT);
   //setClock();
+
+  digitalWrite(led, LOW); // make sure relais is closed
 
   initClock();
 }
@@ -46,9 +44,9 @@ void loop()
   Serial.print("soil moisture ");
   Serial.println(soilMoisture);
       
-  setServo(soilMoisture);
+  setPumpRelais(soilMoisture);
 
-  showTimeAndTemp();
+  //showTimeAndTemp();
   
   delay(delayTime);
 }
@@ -64,7 +62,7 @@ int readSoil()
   return moistureLevel;
 }
 
-void setServo(int soilMoisture) 
+void setPumpRelais(int soilMoisture) 
 {
   int servoVal = map(moistureLevel, 0, 1023, 1, 180);
   if(moistureLevel >= 100 && !open) 
@@ -73,7 +71,8 @@ void setServo(int soilMoisture)
 
     if(measureCount >= 5)
     {
-      myservo.write(servoVal); 
+      //myservo.write(servoVal); 
+      digitalWrite(relaisPin, HIGH);
       open = true;
       digitalWrite(led, HIGH);
     
@@ -82,7 +81,8 @@ void setServo(int soilMoisture)
   }
   else if(moistureLevel < 100 && open) 
   {
-    myservo.write(servoVal); 
+    //myservo.write(servoVal); 
+    digitalWrite(relaisPin, LOW);
     open = false;
     digitalWrite(led, LOW);
     measureCount = 0;
